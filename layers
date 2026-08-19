@@ -1,0 +1,464 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<time.h>
+
+#define MAX 10
+
+struct website
+{
+    char url[50];
+    char ip[20];
+    char mac[20];
+};
+struct website web[MAX]=
+{
+    {"www.google.com","142.250.10.1","AA:11:22:33:44:55"},
+    {"www.youtube.com","142.250.10.2","AA:11:22:33:44:66"},
+    {"www.facebook.com","157.240.1.1","BB:22:33:44:55:66"},
+    {"www.amazon.com","205.251.1.1","CC:33:44:55:66:77"},
+    {"www.wikipedia.org","198.35.26.1","DD:44:55:66:77:88"},
+    {"www.mepcoeng.ac.in","192.168.100.1","00:1A:2B:3C:4D:5E"},
+    {"mail.google.com","142.250.10.3","10:9F:8E:7D:6C:5B"},
+    {"web.whatsapp.com","157.240.12.1","2C:54:91:A7:B8:C9"},
+    {"discord.com","162.159.136.232","48:6F:73:12:34:56"},
+    {"teams.microsoft.com","52.112.0.1","9A:BC:DE:F1:23:45"}
+};
+char msg[500];
+char appbin[5000];
+char srcipbin[40],desipbin[40];
+char srcmacbin[60],desmacbin[60];
+char srcportbin[20],desportbin[20];
+char finaldata[12000];
+char errorcode[]="00000000";
+int src,des;
+int srcport,desport;
+int totalbits;
+int totalpackets;
+int totalframe;
+int packetSize;
+int frameSize;
+char **packet = NULL;
+char **frame  = NULL;
+void displaytable();
+int search(char url[]);
+void readfile();
+void decbin(int n,int bits,char b[]);
+void chartobin(char ch,char b[]);
+void ipbin(char ip[],char b[]);
+void macbin(char mac[],char b[]);
+int randomport();
+void applicationlayer();
+void transportlayer();
+void networklayer();
+void datalinklayer();
+void encapsulation();
+void packetlayer();
+void framelayer();
+void summary();
+void freeMemory();
+int getPositiveInt(const char prompt[]);
+void displaytable()
+{
+    int i;
+    printf("\n===============================================================");
+    printf("\nNo\tWebsite\t\t\tIP Address\t\tMAC Address");
+    printf("\n===============================================================");
+    for(i=0;i<MAX;i++)
+    {
+        printf("\n%d\t%-22s %-16s %s",
+        i+1,
+        web[i].url,
+        web[i].ip,
+        web[i].mac);
+    }
+    printf("\n===============================================================\n");
+}
+int search(char url[])
+{
+    int i;
+    for(i=0;i<MAX;i++)
+    {
+        if(strcmp(url,web[i].url)==0)
+            return i;
+    }
+    return -1;
+}
+void readfile()
+{
+    FILE *fp;
+    char ch;
+    int i = 0;
+    char filename[100];
+    printf("Enter the file name: ");
+    scanf("%99s", filename);
+    fp = fopen(filename, "r");
+    if (fp == NULL)
+    {
+        printf("\nFile '%s' not found.", filename);
+        exit(0);
+    }
+    while ((ch = fgetc(fp)) != EOF)
+    {
+        if (ch != '\n')
+        {
+            msg[i] = ch;
+            i++;
+        }
+    }
+
+    msg[i] = '\0';
+    fclose(fp);
+}
+void decbin(int n,int bits,char b[])
+{
+    int i;
+    b[bits]='\0';
+    for(i=bits-1;i>=0;i--)
+    {
+        b[i]=(n%2)+'0';
+        n=n/2;
+    }
+}
+void chartobin(char ch,char b[])
+{
+    decbin((unsigned char)ch,8,b);
+}
+void ipbin(char ip[],char b[])
+{
+    int a,c,d,e;
+    char t[9];
+    b[0]='\0';
+    sscanf(ip,"%d.%d.%d.%d",&a,&c,&d,&e);
+    decbin(a,8,t);
+    strcat(b,t);
+    decbin(c,8,t);
+    strcat(b,t);
+    decbin(d,8,t);
+    strcat(b,t);
+    decbin(e,8,t);
+    strcat(b,t);
+}
+void macbin(char mac[],char b[])
+{
+    unsigned int m[6];
+    int i;
+    char t[9];
+    b[0]='\0';
+    sscanf(mac,"%x:%x:%x:%x:%x:%x",
+           &m[0],&m[1],&m[2],&m[3],&m[4],&m[5]);
+    for(i=0;i<6;i++)
+    {
+        decbin(m[i],8,t);
+        strcat(b,t);
+    }
+}
+
+int randomport()
+{
+    return rand()%50000+1024;
+}
+int getPositiveInt(const char prompt[])
+{
+    int value;
+    int ok;
+    do
+    {
+        printf("%s",prompt);
+        ok = scanf("%d",&value);
+        if(ok!=1)
+        {
+            /* clear bad input from the buffer */
+            while(getchar()!='\n');
+            value = -1;
+        }
+        if(value<=0)
+            printf("Please enter a positive whole number.\n");
+    } while(value<=0);
+    return value;
+}
+void applicationlayer()
+{
+    int i;
+    char b[9];
+    appbin[0]='\0';
+    printf("\n\n====================================================");
+    printf("\n            APPLICATION LAYER");
+    printf("\n====================================================");
+    printf("\n\nApplication Message : %s\n",msg);
+    printf("\nASCII Value\n");
+    for(i=0;msg[i]!='\0';i++)
+    {
+        printf("%d ",(int)msg[i]);
+    }
+    printf("\n\nBinary Data\n");
+    for(i=0;msg[i]!='\0';i++)
+    {
+        chartobin(msg[i],b);
+        strcat(appbin,b);
+    }
+    printf("%s",appbin);
+    printf("\n\nApplication Data Size : %d Bits\n",(int)strlen(appbin));
+}
+void transportlayer()
+{
+    srcport=randomport();
+    desport=randomport();
+    decbin(srcport,16,srcportbin);
+    decbin(desport,16,desportbin);
+    printf("\n\n====================================================");
+    printf("\n             TRANSPORT LAYER");
+    printf("\n====================================================");
+    printf("\n\nSource Port Number      : %d",srcport);
+    printf("\nSource Port Binary      : %s",srcportbin);
+    printf("\n\nDestination Port Number : %d",desport);
+    printf("\nDestination Port Binary : %s",desportbin);
+}
+void networklayer()
+{
+    ipbin(web[src].ip,srcipbin);
+    ipbin(web[des].ip,desipbin);
+    printf("\n\n====================================================");
+    printf("\n              NETWORK LAYER");
+    printf("\n====================================================");
+    printf("\n\nSource URL             : %s",web[src].url);
+    printf("\nDestination URL        : %s",web[des].url);
+    printf("\n\nSource IP Address      : %s",web[src].ip);
+    printf("\nDestination IP Address : %s",web[des].ip);
+    printf("\n\nSource IP Binary");
+    printf("\n%s",srcipbin);
+    printf("\n\nDestination IP Binary");
+    printf("\n%s",desipbin);
+}
+void datalinklayer()
+{
+    macbin(web[src].mac,srcmacbin);
+    macbin(web[des].mac,desmacbin);
+    printf("\n\n====================================================");
+    printf("\n             DATA LINK LAYER");
+    printf("\n====================================================");
+    printf("\n\nSource MAC Address      : %s",web[src].mac);
+    printf("\nDestination MAC Address : %s",web[des].mac);
+    printf("\n\nSource MAC Binary");
+    printf("\n%s",srcmacbin);
+    printf("\n\nDestination MAC Binary");
+    printf("\n%s",desmacbin);
+    printf("\n\nError Code : %s",errorcode);
+}
+void encapsulation()
+{
+    finaldata[0]='\0';
+    strcat(finaldata,srcipbin);
+    strcat(finaldata,desipbin);
+    strcat(finaldata,srcportbin);
+    strcat(finaldata,desportbin);
+    strcat(finaldata,appbin);
+    strcat(finaldata,srcmacbin);
+    strcat(finaldata,desmacbin);
+    strcat(finaldata,errorcode);
+    totalbits=(int)strlen(finaldata);
+    printf("\n\n====================== FINAL ENCAPSULATED DATA ======================\n");
+    printf("\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    printf("\n| %-32s | %-32s | %-16s | %-16s | %-30s | %-48s | %-48s | %-8s |",
+    "Source IP","Destination IP","Source Port","Destination Port",
+    "Application Data","Source MAC","Destination MAC","Error");
+    printf("\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    printf("\n| %-32s | %-32s | %-16s | %-16s | %-30s | %-48s | %-48s | %-8s |",
+    srcipbin,desipbin,srcportbin,desportbin,appbin,srcmacbin,desmacbin,errorcode);
+    printf("\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+}
+void packetlayer()
+{
+    int i,j;
+    int remain,pad,data;
+    printf("\n\n====================== PACKET FORMATION ======================\n");
+    totalpackets = totalbits / packetSize;
+    if(totalbits % packetSize != 0)
+        totalpackets++;
+    packet = (char**)malloc(totalpackets * sizeof(char*));
+    if(packet==NULL){ printf("\nMemory allocation failed."); exit(1); }
+    for(i=0;i<totalpackets;i++)
+    {
+        packet[i] = (char*)malloc((packetSize+1) * sizeof(char));
+        if(packet[i]==NULL){ printf("\nMemory allocation failed."); exit(1); }
+    }
+    printf("\nTotal Binary Size : %d Bits",totalbits);
+    printf("\nPacket Size       : %d Bits",packetSize);
+    printf("\nTotal Packets     : %d\n",totalpackets);
+    for(i=0;i<totalpackets;i++)
+    {
+        data=0;
+        for(j=0;j<packetSize;j++)
+        {
+            if((i*packetSize+j)<totalbits)
+            {
+                packet[i][j]=finaldata[i*packetSize+j];
+                data++;
+            }
+            else
+            {
+                packet[i][j]='0';
+            }
+        }
+        packet[i][packetSize]='\0';
+        printf("\n--------------------------------");
+        printf("\nPacket %d",i+1);
+        printf("\n%s",packet[i]);
+        if(data<packetSize)
+        {
+            pad=packetSize-data;
+            printf("\n");
+            printf("\nOnly %d Data Bits Available.",data);
+            printf("\nRemaining %d Bits are Padded with 0.",pad);
+            printf("\nError Code : %s",errorcode);
+        }
+        printf("\n--------------------------------");
+    }
+    remain=totalbits%packetSize;
+    printf("\n\n====================== PACKET CALCULATION ======================\n");
+    printf("\nTotal Binary Bits : %d",totalbits);
+    printf("\nPacket Size       : %d",packetSize);
+    printf("\nPackets Created   : %d",totalpackets);
+    if(remain!=0)
+    {
+        printf("\nRemaining Bits    : %d",remain);
+        printf("\nPadding Bits      : %d",packetSize-remain);
+    }
+    else
+    {
+        printf("\nRemaining Bits    : 0");
+        printf("\nPadding Bits      : 0");
+    }
+    printf("\n");
+}
+void framelayer()
+{
+    int i,j,k;
+    int framecount=0;
+    int framesPerPacket;
+    int bitsavail,copylen;
+    printf("\n\n====================== FRAME FORMATION ======================\n");
+    printf("\nFrame Size : %d Bits",frameSize);
+    framesPerPacket = packetSize / frameSize;
+    if(packetSize % frameSize != 0)
+        framesPerPacket++;
+    totalframes = totalpackets * framesPerPacket;
+    frame = (char**)malloc(totalframes * sizeof(char*));
+    if(frame==NULL){ printf("\nMemory allocation failed."); exit(1); }
+    for(i=0;i<totalframes;i++)
+    {
+        frame[i] = (char*)malloc((frameSize+1) * sizeof(char));
+        if(frame[i]==NULL){ printf("\nMemory allocation failed."); exit(1); }
+    }
+    for(i=0;i<totalpackets;i++)
+    {
+        printf("\n\nPacket %d Converted into Frames",i+1);
+        for(j=0;j<packetSize;j+=frameSize)
+        {
+            bitsavail = packetSize - j;
+            copylen = (bitsavail<frameSize) ? bitsavail : frameSize;
+            for(k=0;k<frameSize;k++)
+            {
+                if(k<copylen)
+                    frame[framecount][k]=packet[i][j+k];
+                else
+                    frame[framecount][k]='0'; /* pad leftover bits */
+            }
+            frame[framecount][frameSize]='\0';
+            framecount++;
+            printf("\n--------------------------------");
+            printf("\nFrame %d",framecount);
+            printf("\n%s",frame[framecount-1]);
+            if(copylen<frameSize)
+            {
+                printf("\nPadded %d Bits with 0 (end of packet).",frameSize-copylen);
+            }
+            printf("\n--------------------------------");
+        }
+    }
+    totalframes=framecount;
+    printf("\n\nTotal Frames Created : %d",totalframes);
+}
+void summary()
+{
+    printf("\n\n====================== NETWORK SUMMARY ======================\n");
+    printf("\nSource Website      : %s",web[src].url);
+    printf("\nDestination Website : %s",web[des].url);
+    printf("\n\nApplication Data Size : %d Bits",(int)strlen(appbin));
+    printf("\nTransport Layer");
+    printf("\nSource Port      : %d",srcport);
+    printf("\nDestination Port : %d",desport);
+    printf("\n\nNetwork Layer");
+    printf("\nSource IP      : %s",web[src].ip);
+    printf("\nDestination IP : %s",web[des].ip);
+    printf("\n\nData Link Layer");
+    printf("\nSource MAC      : %s",web[src].mac);
+    printf("\nDestination MAC : %s",web[des].mac);
+    printf("\n\nTotal Binary Data : %d Bits",totalbits);
+    printf("\nPacket Size Used  : %d Bits",packetSize);
+    printf("\nFrame Size Used   : %d Bits",frameSize);
+    printf("\nTotal Packets : %d",totalpackets);
+    printf("\nTotal Frames  : %d",totalframes);
+    printf("\n\n================ TRANSMISSION FINISHED ================\n");
+}
+void freeMemory()
+{
+    int i;
+    if(packet!=NULL)
+    {
+        for(i=0;i<totalpackets;i++) free(packet[i]);
+        free(packet);
+    }
+    if(frame!=NULL)
+    {
+        for(i=0;i<totalframes;i++) free(frame[i]);
+        free(frame);
+    }
+}
+int main()
+{
+    char sourceurl[50];
+    char destinationurl[50];
+    srand((unsigned int)time(NULL));
+    printf("\n\n====================================================");
+    printf("\n        NETWORK PACKET SIMULATOR");
+    printf("\n====================================================");
+    displaytable();
+    printf("\nEnter Source Website : ");
+    scanf("%s",sourceurl);
+    src=search(sourceurl);
+    if(src==-1)
+    {
+        printf("\nSource Website Not Found.");
+        return 0;
+    }
+    printf("\nEnter Destination Website : ");
+    scanf("%s",destinationurl);
+    des=search(destinationurl);
+    if(des==-1)
+    {
+        printf("\nDestination Website Not Found.");
+        return 0;
+    }
+    readfile();
+    packetSize = getPositiveInt("Enter Packet Size : ");
+    frameSize  = getPositiveInt("Enter Frame Size: ");
+    if(frameSize>packetSize)
+    {
+        printf("\nNote: Frame Size was larger than Packet Size, so it has been reduced to match Packet Size.\n");
+        frameSize=packetSize;
+    }
+    printf("\n\n====================================================");
+    printf("\n        DATA COMMUNICATION STARTED");
+    printf("\n====================================================");
+    applicationlayer();
+    transportlayer();
+    networklayer();
+    datalinklayer();
+    encapsulation();
+    packetlayer();
+    framelayer();
+    summary();
+    freeMemory();
+    return 0;
+}
