@@ -1,0 +1,6 @@
+class Solution {
+    public int hammingDistance(int x, int y) {
+        // x ^ y finds differing bits, Integer.bitCount counts them
+        return Integer.bitCount(x ^ y);
+    }
+}
