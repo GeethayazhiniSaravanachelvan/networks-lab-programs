@@ -1,0 +1,84 @@
+#include <stdlib.h>
+
+/* Simple helper function to sort elements at the end */
+int compare_elements(const void *a, const void *b) 
+{
+    int val_a = *(const int *)a;
+    int val_b = *(const int *)b;
+    if (val_a < val_b) return -1;
+    if (val_a > val_b) return 1;
+    return 0;
+}
+
+int subarrayBitwiseORs(int* arr, int arrSize) {
+    /* Arrays to store unique OR values ending at the previous and current positions */
+    int previous_pool[32];
+    int current_pool[32];
+    int previous_size = 0;
+    int current_size = 0;
+    
+    /* Allocate a large array to collect all unique values across the iterations */
+    int *global_collector = (int *)malloc(arrSize * 32 * sizeof(int));
+    int global_size = 0;
+    
+    for (int i = 0; i < arrSize; i++) 
+    {
+        current_size = 0;
+        
+        /* The single element subarray is always a valid starting point */
+        current_pool[current_size++] = arr[i];
+        
+        /* Compute new OR values using the previous iteration's unique results */
+        for (int j = 0; j < previous_size; j++) 
+        {
+            int new_or = previous_pool[j] | arr[i];
+            
+            /* Deduplicate inside the current pool window */
+            int is_duplicate = 0;
+            for (int k = 0; k < current_size; k++) 
+            {
+                if (current_pool[k] == new_or) 
+                {
+                    is_duplicate = 1;
+                    break;
+                }
+            }
+            
+            /* Add to our current pool if it's a new unique number */
+            if (!is_duplicate) 
+            {
+                current_pool[current_size++] = new_or;
+            }
+        }
+        
+        /* Copy the current pool items over to our global list and previous tracker setup */
+        for (int j = 0; j < current_size; j++) 
+        {
+            global_collector[global_size++] = current_pool[j];
+            previous_pool[j] = current_pool[j];
+        }
+        previous_size = current_size;
+    }
+    
+    /* Sort the entire historical stream array list to find unique counts */
+    qsort(global_collector, global_size, sizeof(int), compare_elements);
+    
+    /* Walk through the sorted array to count distinct values */
+    int unique_count = 0;
+    if (global_size > 0) 
+    {
+        unique_count = 1;
+        for (int i = 1; i < global_size; i++) 
+        {
+            if (global_collector[i] != global_collector[i - 1]) 
+            {
+                unique_count++;
+            }
+        }
+    }
+    
+    /* Free allocated heap space before exit */
+    free(global_collector);
+    
+    return unique_count;
+}
