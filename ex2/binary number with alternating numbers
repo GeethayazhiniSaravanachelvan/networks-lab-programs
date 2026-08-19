@@ -1,0 +1,28 @@
+bool hasAlternatingBits(int n) {
+    /* Grab the very first bit on the right to start our comparison */
+    int previous_bit = n & 1;
+    
+    /* Shift the number right by 1 to move to the next bit */
+    n = n >> 1;
+    
+    while (n > 0) 
+    {
+        /* Get the current last bit */
+        int current_bit = n & 1;
+        
+        /* If adjacent bits are identical, it is not alternating */
+        if (current_bit == previous_bit) 
+        {
+            return false;
+        }
+        
+        /* Update previous_bit for the next iteration step */
+        previous_bit = current_bit;
+        
+        /* Shift right again to inspect the next bit position */
+        n = n >> 1;
+    }
+    
+    /* If the loop finishes without finding matching adjacent bits, it's true */
+    return true;
+}
