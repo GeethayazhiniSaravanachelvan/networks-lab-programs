@@ -1,0 +1,67 @@
+int minReorder(int n, int** connections, int connectionsSize, int* connectionsColSize)
+{
+    int head[n];
+    int to[2 * connectionsSize];
+    int cost[2 * connectionsSize];
+    int next[2 * connectionsSize];
+
+    int visited[n];
+    int queue[n];
+
+    int i;
+
+    for (i = 0; i < n; i++)
+    {
+        head[i] = -1;
+        visited[i] = 0;
+    }
+
+    int edge = 0;
+
+    /* Build graph */
+    for (i = 0; i < connectionsSize; i++)
+    {
+        int a = connections[i][0];
+        int b = connections[i][1];
+
+        /* Original direction: a -> b */
+        to[edge] = b;
+        cost[edge] = 1;
+        next[edge] = head[a];
+        head[a] = edge++;
+
+        /* Reverse direction: b -> a */
+        to[edge] = a;
+        cost[edge] = 0;
+        next[edge] = head[b];
+        head[b] = edge++;
+    }
+
+    int front = 0;
+    int rear = 0;
+    int answer = 0;
+
+    queue[rear++] = 0;
+    visited[0] = 1;
+
+    while (front < rear)
+    {
+        int city = queue[front++];
+
+        for (i = head[city]; i != -1; i = next[i])
+        {
+            int nextCity = to[i];
+
+            if (!visited[nextCity])
+            {
+                visited[nextCity] = 1;
+
+                answer += cost[i];
+
+                queue[rear++] = nextCity;
+            }
+        }
+    }
+
+    return answer;
+}
