@@ -1,0 +1,117 @@
+
+
+#define INF 1000000000
+
+// A simple structure to represent a min-heap element
+typedef struct {
+    int r;
+    int c;
+    int effort;
+} MinHeapNode;
+
+// Function to swap two heap nodes
+void swap(MinHeapNode* a, MinHeapNode* b) {
+    MinHeapNode temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int minimumEffortPath(int** heights, int heightsSize, int* heightsColSize) {
+    int rows = heightsSize;
+    int cols = heightsColSize[0];
+    
+    // 2D array to store the minimum effort to reach each cell
+    int** effortGrid = (int**)malloc(rows * sizeof(int*));
+    for (int i = 0; i < rows; i++) {
+        effortGrid[i] = (int*)malloc(cols * sizeof(int));
+        for (int j = 0; j < cols; j++) {
+            effortGrid[i][j] = INF;
+        }
+    }
+    
+    // Min-heap setup for Dijkstra's algorithm
+    int maxHeapSize = rows * cols * 4; // Absolute upper bound for heap capacity
+    MinHeapNode* heap = (MinHeapNode*)malloc(maxHeapSize * sizeof(MinHeapNode));
+    int heapSize = 0;
+    
+    // Initialize starting point
+    effortGrid[0][0] = 0;
+    heap[heapSize++] = (MinHeapNode){0, 0, 0};
+    
+    // Direction arrays for moving Up, Down, Left, Right
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+    
+    while (heapSize > 0) {
+        // Pop the element with the minimum effort from the heap
+        MinHeapNode curr = heap[0];
+        heap[0] = heap[--heapSize];
+        
+        // Min-heapify down
+        int idx = 0;
+        while (2 * idx + 1 < heapSize) {
+            int left = 2 * idx + 1;
+            int right = 2 * idx + 2;
+            int smallest = left;
+            if (right < heapSize && heap[right].effort < heap[left].effort) {
+                smallest = right;
+            }
+            if (heap[idx].effort <= heap[smallest].effort) break;
+            swap(&heap[idx], &heap[smallest]);
+            idx = smallest;
+        }
+        
+        int r = curr.r;
+        int c = curr.c;
+        int currentEffort = curr.effort;
+        
+        // If we reached the bottom-right cell, return the answer
+        if (r == rows - 1 && c == cols - 1) {
+            // Free allocated memory before returning
+            for (int i = 0; i < rows; i++) free(effortGrid[i]);
+            free(effortGrid);
+            free(heap);
+            return currentEffort;
+        }
+        
+        // If we found a path with a larger effort than already recorded, skip it
+        if (currentEffort > effortGrid[r][c]) continue;
+        
+        // Explore all 4 adjacent directions
+        for (int i = 0; i < 4; i++) {
+            int nr = r + dr[i];
+            int nc = c + dc[i];
+            
+            // Check boundary conditions
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                // The effort for the next step is the maximum of the current effort 
+                // and the absolute difference between the current cell and the next cell
+                int absDiff = abs(heights[r][c] - heights[nr][nc]);
+                int nextEffort = (currentEffort > absDiff) ? currentEffort : absDiff;
+                
+                // If this path offers a lower effort to the target cell, update and push to heap
+                if (nextEffort < effortGrid[nr][nc]) {
+                    effortGrid[nr][nc] = nextEffort;
+                    
+                    // Push to min-heap
+                    heap[heapSize] = (MinHeapNode){nr, nc, nextEffort};
+                    int child = heapSize++;
+                    // Min-heapify up
+                    while (child > 0) {
+                        int parent = (child - 1) / 2;
+                        if (heap[parent].effort <= heap[child].effort) break;
+                        swap(&heap[parent], &heap[child]);
+                        child = parent;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Clean up memory in case of unexpected failure
+    for (int i = 0; i < rows; i++) free(effortGrid[i]);
+    free(effortGrid);
+    free(heap);
+    
+    return 0;
+}
