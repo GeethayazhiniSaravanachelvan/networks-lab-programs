@@ -1,0 +1,35 @@
+#include <string.h>
+
+#define INF 100000000
+
+int findCheapestPrice(int n, int** flights, int flightsSize, int* flightsColSize, int src, int dst, int k) {
+    // Array to keep track of prices/distances to each city
+    int prices[n];
+    for (int i = 0; i < n; i++) {
+        prices[i] = INF;
+    }
+    prices[src] = 0;
+
+    // Run the relaxation up to k + 1 times (k stops means at most k + 1 edges)
+    for (int i = 0; i <= k; i++) {
+        // Create a copy of the current prices to avoid using updated nodes in the same iteration
+        int tempPrices[n];
+        memcpy(tempPrices, prices, sizeof(prices));
+
+        for (int j = 0; j < flightsSize; j++) {
+            int u = flights[j][0];
+            int v = flights[j][1];
+            int price = flights[j][2];
+
+            // If the starting city is reachable, check if this flight gives a cheaper path
+            if (prices[u] != INF && prices[u] + price < tempPrices[v]) {
+                tempPrices[v] = prices[u] + price;
+            }
+        }
+        // Copy the updated round back to the main prices array
+        memcpy(prices, tempPrices, sizeof(prices));
+    }
+
+    // Return the minimum price to reach dst, or -1 if unreachable within k stops
+    return (prices[dst] == INF) ? -1 : prices[dst];
+}
