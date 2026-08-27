@@ -1,0 +1,109 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define SIZE 1024
+
+void arp_request(int sockfd)
+{
+    char ip[SIZE];
+    char mac[SIZE];
+    char buffer[SIZE];
+    int n;
+
+    /* Enter IP address */
+    printf("Enter IP address: ");
+    fgets(ip, SIZE, stdin);
+
+    /* Send IP to server */
+    send(sockfd, ip, strlen(ip), 0);
+
+    /* Receive result */
+    memset(buffer, 0, SIZE);
+
+    n = recv(sockfd, buffer, SIZE - 1, 0);
+
+    if (n <= 0)
+    {
+        printf("Server disconnected.\n");
+        return;
+    }
+
+    buffer[n] = '\0';
+
+    if (strcmp(buffer, "NOT FOUND") == 0)
+    {
+        printf("IP not present in ARP cache.\n");
+
+        /* Enter MAC address */
+        printf("Enter MAC address: ");
+        fgets(mac, SIZE, stdin);
+
+        /* Send MAC to server */
+        send(sockfd, mac, strlen(mac), 0);
+
+        /* Receive insertion result */
+        memset(buffer, 0, SIZE);
+
+        n = recv(sockfd, buffer, SIZE - 1, 0);
+
+        if (n > 0)
+        {
+            buffer[n] = '\0';
+            printf("Server: %s\n", buffer);
+        }
+    }
+    else
+    {
+        printf("Server: %s\n", buffer);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    int sockfd;
+    struct sockaddr_in server;
+
+    if (argc != 3)
+    {
+        printf("Usage: %s <server_ip> <port>\n", argv[0]);
+        return 1;
+    }
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockfd < 0)
+    {
+        perror("Socket error");
+        return 1;
+    }
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons(atoi(argv[2]));
+
+    if (inet_pton(AF_INET, argv[1], &server.sin_addr) <= 0)
+    {
+        printf("Invalid IP address\n");
+        close(sockfd);
+        return 1;
+    }
+
+    if (connect(sockfd,
+                (struct sockaddr *)&server,
+                sizeof(server)) < 0)
+    {
+        perror("Connection error");
+        close(sockfd);
+        return 1;
+    }
+
+    printf("Connected to ARP server.\n");
+
+    arp_request(sockfd);
+
+    close(sockfd);
+
+    return 0;
+}
